@@ -1,0 +1,95 @@
+/* Main container for the home page */
+.contest-list-page {
+  background-color: #f0f2f5; /* Light grey background */
+  min-height: calc(100vh - 80px); /* Fill the screen below the navbar */
+  padding: 40px 20px;
+}
+
+/* The big blue welcome banner */
+.welcome-banner {
+  background-color: #007bff;
+  color: #ffffff;
+  padding: 50px 30px;
+  text-align: center;
+  border-radius: 12px;
+  margin-bottom: 50px;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.welcome-banner h1 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.welcome-banner p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* "All Contests" Section Header */
+.contests-header {
+  font-size: 1.8rem;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+/* Grid container for the contest cards */
+.contests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+/* Individual contest card styling */
+.contest-card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.contest-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.contest-card h3 {
+  font-size: 1.4rem;
+  color: #007bff;
+  margin: 0 0 15px;
+}
+
+.contest-info {
+  display: flex;
+  align-items: center;
+  color: #666;
+  margin-bottom: 20px;
+  flex-grow: 1;
+}
+
+.contest-info i {
+  margin-right: 10px;
+  font-size: 1.1rem;
+}
+
+.join-button {
+  background-color: #007bff;
+  color: white;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.join-button:hover {
+  background-color: #0056b3;
+}

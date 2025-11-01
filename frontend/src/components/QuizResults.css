@@ -1,0 +1,27 @@
+.quiz-results-container {
+  max-width: 800px;
+  margin: 40px auto;
+  text-align: center;
+}
+.final-score { font-size: 1.8rem; font-weight: bold; margin-bottom: 20px; }
+.performance-chart { margin-bottom: 30px; }
+.feedback-text { font-size: 1.5rem; font-weight: bold; margin-bottom: 15px; }
+.chart-bar-container { height: 40px; width: 100%; background-color: #e9ecef; border-radius: 20px; overflow: hidden; }
+.chart-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
+  transition: width 0.8s ease-in-out;
+}
+.review-title { text-align: left; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px; }
+.answers-review { text-align: left; }
+.review-item { padding: 15px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 15px; }
+.review-item p { margin: 5px 0; }
+.correct { color: #28a745; }
+.incorrect { color: #dc3545; }
+.correct-answer { color: #17a2b8; font-style: italic; }
+.restart-button { margin-top: 20px; padding: 12px 25px; font-size: 1.1rem; }

@@ -1,0 +1,141 @@
+const pdf = require('pdf-parse');
+const { VertexAI } = require('@google-cloud/vertexai');
+const path = require('path');
+const fs = require('fs');
+
+// Set the environment variable for Google Application Credentials
+const credentialsPath = path.join(__dirname, '..', 'service-account-key.json');
+
+// Initialize Vertex AI with error handling
+let vertex_ai = null;
+let generativeModel = null;
+
+async function initializeVertexAI() {
+    try {
+        // Verify credentials file exists
+        if (!fs.existsSync(credentialsPath)) {
+            throw new Error('Service account credentials file not found');
+        }
+
+        // Set the credentials path
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
+
+        // Verify credentials content
+        const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+        if (!credentials.project_id || !credentials.private_key || !credentials.client_email) {
+            throw new Error('Invalid service account credentials: missing required fields');
+        }
+
+        // Initialize Vertex AI
+        vertex_ai = new VertexAI({
+            project: credentials.project_id,
+            location: 'us-central1',
+        });
+
+        generativeModel = vertex_ai.getGenerativeModel({
+            model: 'gemini-1.0-pro',
+        });
+
+        console.log('[Vertex AI] Successfully initialized');
+        return true;
+    } catch (error) {
+        console.error('[Vertex AI] Initialization failed:', error.message);
+        return false;
+    }
+}
+
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID;
+const LOCATION = 'us-central1';
+
+// Enhanced logging
+console.log('[Vertex AI] Configuration:');
+console.log(`- Project ID: ${PROJECT_ID}`);
+console.log(`- Location: ${LOCATION}`);
+console.log(`- Credentials Path: ${credentialsPath}`);
+console.log(`- Credentials File Exists: ${require('fs').existsSync(credentialsPath)}`);
+
+if (!PROJECT_ID) {
+    throw new Error('GOOGLE_CLOUD_PROJECT_ID environment variable is not set');
+}
+
+const vertex_ai = new VertexAI({
+    project: PROJECT_ID,
+    location: LOCATION,
+});
+const model = 'gemini-1.0-pro';
+
+const generativeModel = vertex_ai.getGenerativeModel({
+  model: model,
+});
+
+exports.generateQuizFromPDF = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ msg: 'No PDF file was uploaded.' });
+  }
+
+  const numQuestions = parseInt(req.body.numQuestions, 10) || 5;
+
+  try {
+    const data = await pdf(req.file.buffer);
+    const cleanedText = data.text.replace(/\s+/g, ' ').trim();
+    const truncatedText = cleanedText.substring(0, 15000);
+
+    if (!truncatedText) {
+      return res.status(400).json({ msg: 'The PDF appears to be empty or unreadable.' });
+    }
+
+    const prompt = `
+      You are an expert quiz creator. Based on the following document content, generate exactly ${numQuestions} multiple-choice questions. Your response MUST be ONLY a valid JSON array of objects, with no other text or markdown.
+      The structure for each object must be:
+      {
+        "text": "A high-quality question?",
+        "choices": [ { "text": "Choice A" }, { "text": "Choice B" }, { "text": "Choice C" }, { "text": "Choice D" } ],
+        "correctIndex": <an integer from 0 to 3>
+      }
+      Document Content: """${truncatedText}"""
+    `;
+
+    const request = {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    };
+
+    const resp = await generativeModel.generateContent(request);
+    
+    // Check if the response or candidates are valid before accessing them
+    if (!resp.response || !resp.response.candidates || resp.response.candidates.length === 0) {
+        throw new Error("Invalid response structure from AI. The response may have been blocked for safety reasons.");
+    }
+    
+    const responseText = resp.response.candidates[0].content.parts[0].text;
+    const cleanedJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const generatedQuestions = JSON.parse(cleanedJson);
+
+    res.json({
+      title: `AI Quiz from ${req.file.originalname}`,
+      questions: generatedQuestions
+    });
+
+  } catch (error) {
+    console.error('--- DETAILED ERROR IN VERTEX AI ---');
+    console.error('Error Code:', error.code);
+    console.error('Error Details:', error.details);
+    console.error('Error Message:', error.message);
+    console.error('Stack Trace:', error.stack);
+    console.error('------------------------------------');
+
+    // Send more specific error messages to the client
+    let errorMessage = 'Server error: The AI failed to process the request via Vertex AI.';
+    if (error.code === 'ENOENT' && error.message.includes('service-account-key.json')) {
+      errorMessage = 'Server configuration error: Service account credentials not found.';
+    } else if (error.message.includes('Unable to authenticate')) {
+      errorMessage = 'Authentication failed with Google Cloud. Please check the service account credentials.';
+    } else if (error.message.includes('Permission denied')) {
+      errorMessage = 'Permission denied. The service account may not have the required permissions.';
+    }
+
+    res.status(500).json({ 
+      msg: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
