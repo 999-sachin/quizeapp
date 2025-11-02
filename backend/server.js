@@ -32,6 +32,9 @@ const startServer = async () => {
     await connectDB();
     const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
+    app.use(cors({
+  origin: "https://quizapp-frontend-blyy.onrender.com" 
+}));
     // Handle server errors
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
