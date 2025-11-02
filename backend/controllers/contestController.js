@@ -27,7 +27,9 @@ exports.createContest = async (req, res) => {
 // Get a single contest with its questions
 exports.getContest = async (req, res) => {
   try {
-    // Exclude correctIndex from the populated questions
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ msg: 'Invalid Contest ID format' });
+    }
     const contest = await Contest.findById(req.params.id).populate({
       path: 'questions',
       select: 'text choices difficulty',
@@ -56,6 +58,9 @@ exports.listContests = async (req, res) => {
 // Get the leaderboard for a contest
 exports.getLeaderboard = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ msg: 'Invalid Contest ID format' });
+    }
     const contestId = new mongoose.Types.ObjectId(req.params.id);
     const results = await Submission.aggregate([
       { $match: { contestId: contestId } },
@@ -73,13 +78,19 @@ exports.getLeaderboard = async (req, res) => {
   }
 };
 
-// CORRECTION: Moved answer submission logic here to match the route.
+// ======================================================================
+// THIS IS THE FUNCTION THAT WAS MISSING OR INCORRECTLY EXPORTED
+// ======================================================================
 exports.submitAnswer = async (req, res) => {
   const userId = req.user.id;
   const { id: contestId } = req.params;
   const { questionIndex, answerIndex, timeTakenSec } = req.body;
 
   try {
+    if (!mongoose.Types.ObjectId.isValid(contestId)) {
+        return res.status(400).json({ msg: 'Invalid Contest ID format' });
+    }
+
     const contest = await Contest.findById(contestId).populate('questions');
     if (!contest) return res.status(404).json({ msg: 'Contest not found' });
 
@@ -94,11 +105,13 @@ exports.submitAnswer = async (req, res) => {
     }
 
     const question = contest.questions[questionIndex];
+    // IMPORTANT: Make sure your Question model actually has a `correctIndex` field.
     const isCorrect = question.correctIndex === answerIndex;
 
     try {
       await Submission.create({ contestId, userId, questionIndex, answerIndex, timeTakenSec, isCorrect });
-      return res.status(201).json({ msg: 'Answer submitted successfully', isCorrect });
+      // Send back the questionIndex so the frontend knows which answer was processed
+      return res.status(201).json({ msg: 'Answer submitted successfully', isCorrect, questionIndex });
     } catch (err) {
       if (err.code === 11000) { // Duplicate key error
         return res.status(409).json({ msg: 'You have already answered this question' });
